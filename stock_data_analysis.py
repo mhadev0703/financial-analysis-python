@@ -1,7 +1,6 @@
 import yfinance as yf
 import seaborn as sns
 import matplotlib.pyplot as plt
-import pandas as pd
 
 
 # Function to display summary statistics
@@ -12,17 +11,16 @@ def display_summary_stats(df):
 
 # Function to plot histograms
 def plot_histograms(df):
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5), sharey=True)
+    num_assets = df.shape[1]
+    fig, axes = plt.subplots(1, num_assets, figsize=(12, 5), sharey=True)
 
-    axes[0].hist(df['S&P500'], bins=30, color='skyblue', edgecolor='black')
-    axes[0].set_title('S&P500')
-    axes[0].set_xlabel('Monthly Returns')
+    for i, asset in enumerate(df.columns):
+        axes[i].hist(df[asset], bins=30, color='skyblue', edgecolor='black')
+        axes[i].set_title(asset)
+        axes[i].set_xlabel('Monthly Returns')
+
     axes[0].set_ylabel('Frequency')
-
-    axes[1].hist(df['AAPL'], bins=30, color='orange', edgecolor='black')
-    axes[1].set_title('AAPL')
-    axes[1].set_xlabel('Monthly Returns')
-
+    fig.suptitle('Monthly Returns Distribution for Portfolio Assets', fontsize=16)
     plt.tight_layout()
     plt.show()
 
@@ -33,28 +31,30 @@ def plot_correlation_matrix(df):
     print("Correlation Matrix:")
     print(corr_matrix)
 
+    # Plot a heatmap of the correlation matrix
     sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', fmt=".2f", annot_kws={"size": 12})
-    plt.title('Correlation Matrix between S&P500 and Stock Returns', fontsize=14)
+    plt.title('Correlation Matrix between Portfolio Assets', fontsize=14)
     plt.show()
 
 
-# Download S&P500 and a specific stock data
-sp500 = yf.download('^GSPC', start='2004-01-01', end='2024-08-31', interval='1mo')
-stock = yf.download('AAPL', start='2004-01-01', end='2024-08-31', interval='1mo')
+# Main function
+def main():
+    # Download financial data as portfolio
+    # '^GSPC' = S&P 500 Index, 'AAPL' = Apple, 'MSFT' = Microsoft, 'GC=F' = Gold futures, 'TLT' = Long-term bonds
+    assets = ['^GSPC', 'AAPL', 'MSFT', 'GC=F', 'TLT']
+    data = yf.download(assets, start='2004-01-01', end='2024-08-31', interval='1mo')
 
-# Calculate monthly returns
-sp500['Returns'] = sp500['Adj Close'].pct_change()
-stock['Returns'] = stock['Adj Close'].pct_change()
+    # Calculate monthly returns for all assets
+    returns = data['Adj Close'].pct_change().dropna()
 
-# Make dataframe to store return series
-return_df = pd.DataFrame({'S&P500': sp500['Returns'], 'Stock': stock['Returns']})
-return_df.dropna(inplace=True)
+    # Display summary statistics
+    display_summary_stats(returns)
 
-# Display summary statistics
-display_summary_stats(return_df)
+    # Display histograms of returns
+    plot_histograms(returns)
 
-# Plot histograms
-plot_histograms(return_df)
+    # Display correlation matrix between assets
+    plot_correlation_matrix(returns)
 
-# Plot and display correlation matrix
-plot_correlation_matrix(return_df)
+if __name__ == '__main__':
+    main()
